@@ -1,4 +1,5 @@
 *.beam
 *.ez
-/build
+backend/build
 erl_crash.dump
+.env

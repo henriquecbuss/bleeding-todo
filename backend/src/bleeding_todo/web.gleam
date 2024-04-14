@@ -1,4 +1,9 @@
 import wisp
+import gleam/pgo
+
+pub type Context {
+  Context(db: pgo.Connection)
+}
 
 pub fn middleware(
   req: wisp.Request,
