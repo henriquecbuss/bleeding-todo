@@ -1,5 +1,9 @@
 FROM ghcr.io/gleam-lang/gleam:v1.0.0-erlang-alpine
 
+RUN apk add build-base elixir
+
+RUN mix local.hex --force
+
 # Add project code
 COPY . /build/
 

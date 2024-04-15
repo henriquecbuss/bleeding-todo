@@ -1,9 +1,10 @@
 import birl.{type Time}
 import birl/duration
-import beecrypt
+import antigone
 import gleam/dynamic
 import gleam/result
 import gleam/pgo
+import gleam/bit_array
 import bleeding_todo/database
 
 pub opaque type UserId {
@@ -56,7 +57,8 @@ fn create_user(
   username: String,
   db: pgo.Connection,
 ) -> Result(UserId, database.DbError) {
-  let encrypted_password = beecrypt.hash(raw_password)
+  let encrypted_password =
+    antigone.hash(antigone.hasher(), bit_array.from_string(raw_password))
 
   let sql =
     "
