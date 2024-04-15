@@ -12,8 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: cd backend
-
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "26.0.2"
@@ -22,7 +20,9 @@ jobs:
           # elixir-version: "1.15.4"
 
       - run: gleam deps download
+        working-directory: backend
 
       # - run: gleam test
 
       - run: gleam format --check src test
+        working-directory: backend
