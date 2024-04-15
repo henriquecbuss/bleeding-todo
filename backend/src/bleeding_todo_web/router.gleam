@@ -5,11 +5,13 @@ import bleeding_todo_web.{type Context}
 import bleeding_todo_web/controllers/auth
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
-  use req <- bleeding_todo_web.middleware(req)
+  use req <- bleeding_todo_web.middleware(req, ctx)
+
+  let session = auth.get_session(req, ctx)
 
   case wisp.path_segments(req) {
     ["auth", ..rest] -> {
-      use req <- require_no_auth(req)
+      use req <- require_no_auth(req, session)
 
       case rest {
         ["sign-up"] -> auth.sign_up(req, ctx)
@@ -22,10 +24,9 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
 fn require_no_auth(
   req: Request,
+  session: option.Option(auth.UserSession),
   handle_request: fn(Request) -> Response,
 ) -> Response {
-  let session = auth.get_session(req)
-
   case session {
     option.None -> handle_request(req)
 

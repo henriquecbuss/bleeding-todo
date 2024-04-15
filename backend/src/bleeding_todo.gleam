@@ -15,7 +15,12 @@ pub fn main() {
 
   let db = pgo.connect(pgo.Config(..url_config, pool_size: 15))
 
-  let context = bleeding_todo_web.Context(db)
+  let context =
+    bleeding_todo_web.Context(
+      db,
+      secret_key: env.secret_key_base,
+      frontend_url: env.frontend_url,
+    )
 
   let handler = router.handle_request(_, context)
 

@@ -1,16 +1,21 @@
 import bleeding_todo_web.{type Context}
+import gleam/json
 import gleam/result
 import gleam/http
+import gleam/http/request
 import gleam/dynamic.{type Dynamic}
 import gleam/option.{type Option}
+import gleam/io
 import wisp.{type Request, type Response}
 import bleeding_todo/auth
+import bleeding_todo/database
+
+pub type UserSession =
+  auth.UserSession
 
 type SignUpInput {
   SignUpInput(email: String, raw_password: String, username: String)
 }
-
-const session_id_cookie = "session_id"
 
 fn decode_sign_up_input(
   json: Dynamic,
@@ -32,7 +37,10 @@ pub fn sign_up(req: Request, ctx: Context) -> Response {
   use json <- wisp.require_json(req)
 
   decode_sign_up_input(json)
-  |> result.map_error(fn(_) { wisp.unprocessable_entity() })
+  |> result.map_error(fn(_) {
+    wisp.log_info("Failed to decode sign up input")
+    wisp.unprocessable_entity()
+  })
   |> result.map(fn(input) {
     let sign_up_result =
       auth.sign_up(
@@ -43,23 +51,38 @@ pub fn sign_up(req: Request, ctx: Context) -> Response {
       )
 
     case sign_up_result {
-      Ok(session_id) ->
-        wisp.set_cookie(
-          wisp.created(),
-          req,
-          wisp.Signed,
-          name: session_id_cookie,
-          value: auth.session_id_to_string(session_id),
-          max_age: auth.session_length_seconds,
+      Ok(jwt) ->
+        wisp.json_response(
+          json.to_string_builder(
+            json.object([
+              #("jwt", json.string(auth.jwt_to_string(jwt, ctx.secret_key))),
+            ]),
+          ),
+          201,
         )
 
-      Error(_) -> wisp.internal_server_error()
+      Error(error) -> {
+        wisp.log_error(database.db_error_to_internal_string(error))
+        wisp.internal_server_error()
+      }
     }
   })
   |> result.unwrap_both()
 }
 
-pub fn get_session(req: Request) -> Option(String) {
-  wisp.get_cookie(req, session_id_cookie, wisp.Signed)
-  |> option.from_result()
+pub fn get_session(req: Request, ctx: Context) -> Option(auth.UserSession) {
+  let auth_header = request.get_header(req, "Authorization")
+
+  let session_result = case auth_header {
+    Ok("Bearer " <> jwt_string) -> {
+      auth.get_session_from_jwt(jwt_string, ctx.secret_key, ctx.db)
+    }
+
+    _ -> Error(Nil)
+  }
+
+  io.debug(session_result)
+
+  session_result
+  |> option.from_result
 }
