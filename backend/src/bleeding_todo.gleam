@@ -2,8 +2,8 @@ import gleam/erlang/process
 import gleam/pgo
 import mist
 import wisp
-import bleeding_todo/web
-import bleeding_todo/router
+import bleeding_todo_web
+import bleeding_todo_web/router
 import bleeding_todo/env
 
 pub fn main() {
@@ -15,7 +15,7 @@ pub fn main() {
 
   let db = pgo.connect(pgo.Config(..url_config, pool_size: 15))
 
-  let context = web.Context(db)
+  let context = bleeding_todo_web.Context(db)
 
   let handler = router.handle_request(_, context)
 
