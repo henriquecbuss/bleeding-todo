@@ -3,6 +3,7 @@
 	import Button from '$lib/components/button.svelte';
 	import Input from '$lib/components/input.svelte';
 	import { authStore } from '$lib/stores/auth.store';
+	import { toast } from 'svelte-french-toast';
 
 	let email = '';
 	let username = '';
@@ -15,8 +16,7 @@
 			authStore.set(result.value.jwt);
 			// TODO: Redirect user
 		} else {
-			// TODO: Show Toast
-			console.error(result.error);
+			toast.error(result.error.error);
 		}
 	};
 </script>

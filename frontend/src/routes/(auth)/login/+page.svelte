@@ -3,6 +3,7 @@
 	import Button from '$lib/components/button.svelte';
 	import Input from '$lib/components/input.svelte';
 	import { authStore } from '$lib/stores/auth.store';
+	import { toast } from 'svelte-french-toast';
 
 	let emailOrUsername = '';
 	let password = '';
@@ -14,8 +15,7 @@
 			authStore.set(result.value.jwt);
 			// TODO: Redirect user
 		} else {
-			// TODO: Show Toast
-			console.error(result.error);
+			toast.error(result.error.error);
 		}
 	};
 </script>
@@ -27,7 +27,7 @@
 		<div class="bg-white border shadow-sm text-gray-900 rounded-lg p-8">
 			<form on:submit|preventDefault={signIn}>
 				<Input
-					label="E-mail"
+					label="E-mail or username"
 					inputProps={{ inputmode: 'email', autocomplete: 'email', required: true }}
 					bind:value={emailOrUsername}
 				/>

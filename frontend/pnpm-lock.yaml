@@ -11,6 +11,9 @@ dependencies:
   clsx:
     specifier: ^2.1.0
     version: 2.1.0
+  svelte-french-toast:
+    specifier: ^1.2.0
+    version: 1.2.0(svelte@4.2.14)
   svelte-hero-icons:
     specifier: ^5.1.0
     version: 5.1.0(svelte@4.2.14)
@@ -2294,6 +2297,15 @@ packages:
       svelte: 4.2.14
     dev: true
 
+  /svelte-french-toast@1.2.0(svelte@4.2.14):
+    resolution: {integrity: sha512-5PW+6RFX3xQPbR44CngYAP1Sd9oCq9P2FOox4FZffzJuZI2mHOB7q5gJBVnOiLF5y3moVGZ7u2bYt7+yPAgcEQ==}
+    peerDependencies:
+      svelte: ^3.57.0 || ^4.0.0
+    dependencies:
+      svelte: 4.2.14
+      svelte-writable-derived: 3.1.1(svelte@4.2.14)
+    dev: false
+
   /svelte-hero-icons@5.1.0(svelte@4.2.14):
     resolution: {integrity: sha512-8Z5+jpwFktz5aO325EAGo7nf4ailOKO8w+8Se1aHPVw/DiILuLMbxV6/xOfqpWPux2u7apMsBnMh4cWLbBN/xw==}
     engines: {node: '>=18.0.0'}
@@ -2360,6 +2372,14 @@ packages:
       svelte: 4.2.14
       typescript: 5.4.5
     dev: true
+
+  /svelte-writable-derived@3.1.1(svelte@4.2.14):
+    resolution: {integrity: sha512-w4LR6/bYZEuCs7SGr+M54oipk/UQKtiMadyOhW0PTwAtJ/Ai12QS77sLngEcfBx2q4H8ZBQucc9ktSA5sUGZWw==}
+    peerDependencies:
+      svelte: ^3.2.1 || ^4.0.0-next.1 || ^5.0.0-next.94
+    dependencies:
+      svelte: 4.2.14
+    dev: false
 
   /svelte@4.2.14:
     resolution: {integrity: sha512-ry3+YlWqZpHxLy45MW4MZIxNdvB+Wl7p2nnstWKbOAewaJyNJuOtivSbRChcfIej6wFBjWqyKmf/NgK1uW2JAA==}
