@@ -122,7 +122,7 @@ pub fn sign_in(req: Request, ctx: Context) {
       Error(auth.PasswordIncorrect) -> {
         wisp.json_response(
           json.to_string_builder(
-            json.object([#("error", json.string("Password incorrect"))]),
+            json.object([#("error", json.string("Your password is incorrect"))]),
           ),
           401,
         )
