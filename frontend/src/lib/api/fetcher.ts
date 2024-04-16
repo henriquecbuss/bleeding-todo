@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { env } from '$lib/env/public';
 import { getAuthJwt } from '$lib/stores/auth.store';
 import { authSchema } from './auth';
+import { Result, Ok, Err } from 'ts-results-es';
 
 const apiSchema = {
 	auth: authSchema
@@ -10,16 +11,19 @@ const apiSchema = {
 
 type HttpMethod = 'GET' | 'POST';
 
+type MethodSchema = { input: z.AnyZodObject; output: z.AnyZodObject; error: z.AnyZodObject };
+
 type LeafApiSchemaItem = {
 	route: string;
-	GET?: { input: z.AnyZodObject; output: z.AnyZodObject };
-	POST?: { input: z.AnyZodObject; output: z.AnyZodObject };
+	GET?: MethodSchema;
+	POST?: MethodSchema;
 };
 
 type ApiSchemaItem = LeafApiSchemaItem | { [k: string]: ApiSchemaItem };
 
-type ApiReturn<R extends Route, M extends MethodsForRoute<R>> = z.output<
-	NonNullable<OutputForRoute<R, M>>
+type ApiReturn<R extends Route, M extends MethodsForRoute<R>> = Result<
+	z.output<NonNullable<OutputForRoute<R, M>>>,
+	z.output<NonNullable<ErrorForRoute<R, M>>>
 >;
 
 export const api = async <R extends Route, M extends MethodsForRoute<R>>(
@@ -54,9 +58,15 @@ export const api = async <R extends Route, M extends MethodsForRoute<R>>(
 
 	const json = await result.json();
 
-	const output = methodObject.output.parse(json);
+	if (result.ok) {
+		const output = methodObject.output.parse(json);
 
-	return output as ApiReturn<R, M>;
+		return Ok(output) as ApiReturn<R, M>;
+	}
+
+	const parsedError = methodObject.error.parse(json);
+
+	return Err(parsedError) as ApiReturn<R, M>;
 };
 
 type Route = `/${Paths<typeof apiSchema, UnionToTuple<keyof typeof apiSchema>>}`;
@@ -74,6 +84,11 @@ type InputForRoute<R extends string, M extends MethodsForRoute<R>> = Pipe<
 type OutputForRoute<R extends string, M extends MethodsForRoute<R>> = Pipe<
 	R,
 	[GetRouteObject, Objects.Get<M>, Objects.Get<'output'>]
+>;
+
+type ErrorForRoute<R extends string, M extends MethodsForRoute<R>> = Pipe<
+	R,
+	[GetRouteObject, Objects.Get<M>, Objects.Get<'error'>]
 >;
 
 const getPath = <TObj extends Record<string, unknown>, TPath extends Call<Objects.AllPaths, TObj>>(

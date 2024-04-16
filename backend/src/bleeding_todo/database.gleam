@@ -7,6 +7,7 @@ import gleam/list
 pub type DbError {
   PgoError(pgo.QueryError)
   UnexpectedReturnLength(expected: Int, actual: Int)
+  TimeParsingError(field: String)
 }
 
 pub fn execute_single(
@@ -33,6 +34,8 @@ pub fn db_error_to_internal_string(err: DbError) -> String {
       <> " row(s), got "
       <> int.to_string(actual)
       <> " rows"
+
+    TimeParsingError(field) -> "Error parsing time field: " <> field
 
     PgoError(query_error) -> pgo_error_to_internal_string(query_error)
   }

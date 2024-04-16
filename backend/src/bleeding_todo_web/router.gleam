@@ -15,6 +15,7 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
 
       case rest {
         ["sign-up"] -> auth.sign_up(req, ctx)
+        ["sign-in"] -> auth.sign_in(req, ctx)
         _ -> wisp.not_found()
       }
     }

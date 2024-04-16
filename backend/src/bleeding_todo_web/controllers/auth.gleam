@@ -5,13 +5,14 @@ import gleam/http
 import gleam/http/request
 import gleam/dynamic.{type Dynamic}
 import gleam/option.{type Option}
-import gleam/io
 import wisp.{type Request, type Response}
 import bleeding_todo/auth
 import bleeding_todo/database
 
 pub type UserSession =
   auth.UserSession
+
+// ------------- Sign Up -------------
 
 type SignUpInput {
   SignUpInput(email: String, raw_password: String, username: String)
@@ -70,6 +71,74 @@ pub fn sign_up(req: Request, ctx: Context) -> Response {
   |> result.unwrap_both()
 }
 
+// ------------- Sign In -------------
+
+type SignInInput {
+  SignInInput(email_or_username: String, raw_password: String)
+}
+
+fn decode_sign_in_input(
+  json: Dynamic,
+) -> Result(SignInInput, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic.decode2(
+      SignInInput,
+      dynamic.field("emailOrUsername", dynamic.string),
+      dynamic.field("rawPassword", dynamic.string),
+    )
+
+  decoder(json)
+}
+
+pub fn sign_in(req: Request, ctx: Context) {
+  use <- wisp.require_method(req, http.Post)
+
+  use json <- wisp.require_json(req)
+
+  decode_sign_in_input(json)
+  |> result.map_error(fn(_) {
+    wisp.log_info("Failed to decode sign in input")
+    wisp.unprocessable_entity()
+  })
+  |> result.map(fn(input) {
+    let sign_in_result =
+      auth.sign_in(
+        email_or_username: input.email_or_username,
+        raw_password: input.raw_password,
+        db: ctx.db,
+      )
+
+    case sign_in_result {
+      Ok(jwt) ->
+        wisp.json_response(
+          json.to_string_builder(
+            json.object([
+              #("jwt", json.string(auth.jwt_to_string(jwt, ctx.secret_key))),
+            ]),
+          ),
+          201,
+        )
+
+      Error(auth.PasswordIncorrect) -> {
+        wisp.json_response(
+          json.to_string_builder(
+            json.object([#("error", json.string("Password incorrect"))]),
+          ),
+          401,
+        )
+      }
+
+      Error(auth.DbError(db_error)) -> {
+        wisp.log_error(database.db_error_to_internal_string(db_error))
+        wisp.internal_server_error()
+      }
+    }
+  })
+  |> result.unwrap_both()
+}
+
+// ------------- Helpers -------------
+
 pub fn get_session(req: Request, ctx: Context) -> Option(auth.UserSession) {
   let auth_header = request.get_header(req, "Authorization")
 
@@ -80,8 +149,6 @@ pub fn get_session(req: Request, ctx: Context) -> Option(auth.UserSession) {
 
     _ -> Error(Nil)
   }
-
-  io.debug(session_result)
 
   session_result
   |> option.from_result

@@ -9,11 +9,15 @@
 	let password = '';
 
 	const signUp = async () => {
-		const { jwt } = await api('/auth/sign-up', 'POST', { email, username, rawPassword: password });
+		const result = await api('/auth/sign-up', 'POST', { email, username, rawPassword: password });
 
-		authStore.set(jwt);
-
-		// TODO: Redirect user
+		if (result.isOk()) {
+			authStore.set(result.value.jwt);
+			// TODO: Redirect user
+		} else {
+			// TODO: Show Toast
+			console.error(result.error);
+		}
 	};
 </script>
 

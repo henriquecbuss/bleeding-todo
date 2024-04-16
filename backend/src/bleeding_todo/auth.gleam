@@ -5,7 +5,6 @@ import gleam/dynamic
 import gleam/result
 import gleam/pgo
 import gleam/bit_array
-import gleam/io
 import bleeding_todo/database
 import gwt
 
@@ -51,6 +50,103 @@ pub fn sign_up(
   use session_id <- result.try(create_session(user_id, db))
 
   Ok(create_jwt(session_id))
+}
+
+pub type SignInError {
+  PasswordIncorrect
+  DbError(database.DbError)
+}
+
+pub fn sign_in(
+  email_or_username email_or_username: String,
+  raw_password raw_password: String,
+  db db: pgo.Connection,
+) -> Result(gwt.Jwt, SignInError) {
+  use user <- result.try(
+    get_user_by_email_or_username(email_or_username, db)
+    |> result.map_error(fn(_) { PasswordIncorrect }),
+  )
+
+  case
+    antigone.verify(
+      bit_array.from_string(raw_password),
+      user.encrypted_password,
+    )
+  {
+    False -> Error(PasswordIncorrect)
+
+    True -> {
+      use session_id <- result.try(
+        create_session(user.id, db)
+        |> result.map_error(DbError),
+      )
+
+      Ok(create_jwt(session_id))
+    }
+  }
+}
+
+fn get_user_by_email_or_username(
+  email_or_username email_or_username: String,
+  db db: pgo.Connection,
+) -> Result(User, database.DbError) {
+  let sql =
+    "
+    select
+      id::text, email, encrypted_password, username, created_at::text, updated_at::text
+    from
+      users
+    where
+      email = $1 OR username = $1
+    "
+
+  let return_type =
+    dynamic.tuple6(
+      dynamic.string,
+      dynamic.string,
+      dynamic.string,
+      dynamic.string,
+      dynamic.string,
+      dynamic.string,
+    )
+
+  let response =
+    database.execute_single(sql, db, [pgo.text(email_or_username)], return_type)
+
+  case response {
+    Error(err) -> Error(err)
+
+    Ok(#(
+      id,
+      email,
+      encrypted_password,
+      username,
+      created_at_string,
+      updated_at_string,
+    )) -> {
+      use created_at <- result.try(
+        birl.parse(created_at_string)
+        |> result.map_error(fn(_) {
+          database.TimeParsingError(field: "created_at")
+        }),
+      )
+      use updated_at <- result.try(
+        birl.parse(updated_at_string)
+        |> result.map_error(fn(_) {
+          database.TimeParsingError(field: "updated_at")
+        }),
+      )
+
+      Ok(User(
+        id: UserId(id),
+        email: email,
+        encrypted_password: encrypted_password,
+        username: username,
+        created_at: created_at,
+        updated_at: updated_at,
+      ))
+    }
+  }
 }
 
 fn create_user(
@@ -155,19 +251,14 @@ fn get_session_id_from_jwt(
   Ok(SessionId(session_id_string))
 }
 
-pub type SessionError {
-  DbError(database.DbError)
-  TimeParsingError(field: String)
-}
-
 fn get_session(
   session_id: SessionId,
   db: pgo.Connection,
-) -> Result(UserSession, SessionError) {
+) -> Result(UserSession, database.DbError) {
   let sql =
     "
   select
-    id, user_id, created_at, expires_at
+    id::text, user_id::text, created_at::text, expires_at::text
   from
     user_sessions
   where
@@ -189,19 +280,21 @@ fn get_session(
       return_type,
     )
 
-  io.debug(response)
-
   case response {
-    Error(err) -> Error(DbError(err))
+    Error(err) -> Error(err)
 
     Ok(#(id, user_id, created_at_string, expires_at_string)) -> {
       use created_at <- result.try(
         birl.parse(created_at_string)
-        |> result.map_error(fn(_) { TimeParsingError(field: "created_at") }),
+        |> result.map_error(fn(_) {
+          database.TimeParsingError(field: "created_at")
+        }),
       )
       use expires_at <- result.try(
         birl.parse(expires_at_string)
-        |> result.map_error(fn(_) { TimeParsingError(field: "expires_at") }),
+        |> result.map_error(fn(_) {
+          database.TimeParsingError(field: "expires_at")
+        }),
       )
 
       Ok(UserSession(

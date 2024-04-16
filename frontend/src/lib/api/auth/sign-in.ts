@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
 const input = z.object({
-	email: z.string().email(),
-	username: z.string().min(2),
+	emailOrUsername: z.string(),
 	rawPassword: z.string().min(6)
 });
 
@@ -14,8 +13,8 @@ const error = z.object({
 	error: z.string()
 });
 
-export const signUpSchema = {
-	route: '/auth/sign-up',
+export const signInSchema = {
+	route: '/auth/sign-in',
 	POST: {
 		input,
 		output,
