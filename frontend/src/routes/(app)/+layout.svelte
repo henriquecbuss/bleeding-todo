@@ -1,13 +1,12 @@
-<script>
+<script lang="ts">
 	import Navbar from '$lib/components/navbar.svelte';
 	import RedirectGate from '$lib/components/redirect-gate.svelte';
 	import { authStore } from '$lib/stores/auth.store';
 </script>
 
-<RedirectGate condition={!$authStore} redirect="/dashboard">
-	<div class="h-full flex flex-col bg-gray-50">
-		<Navbar />
+<Navbar />
 
-		<slot />
-	</div>
+<RedirectGate condition={!!$authStore} redirect="/login">
+	<h1>App Layout</h1>
+	<slot />
 </RedirectGate>

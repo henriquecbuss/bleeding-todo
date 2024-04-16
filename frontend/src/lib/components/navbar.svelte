@@ -9,14 +9,15 @@
 		MenuItems,
 		Transition
 	} from '@rgossiaux/svelte-headlessui';
-	import { Icon, XMark, Bars3, Bell, CheckBadge } from 'svelte-hero-icons';
+	import { Icon, XMark, Bars3, Bell, CheckBadge, User } from 'svelte-hero-icons';
 	import { cn } from '$lib/utils';
+	import { authStore } from '$lib/stores/auth.store';
 
 	export let links: { name: string; href: string }[] = [];
 
 	const currentLink = links.find((link) => link.href === window.location.pathname);
 
-	const signedIn = false;
+	const signedIn = !!$authStore;
 </script>
 
 <Disclosure as="nav" class="bg-gray-800" let:open>
@@ -87,7 +88,7 @@
 					>
 						<span class="absolute -inset-1.5" />
 						<span class="sr-only">View notifications</span>
-						<Icon src={Bell} class="h-6 w-6" aria-hidden="true" />
+						<Icon src={Bell} class="h-6 w-6 text-gray-300" aria-hidden="true" />
 					</button>
 
 					<Menu as="div" class="relative ml-3">
@@ -97,11 +98,9 @@
 							>
 								<span class="absolute -inset-1.5" />
 								<span class="sr-only">Open user menu</span>
-								<img
-									class="h-8 w-8 rounded-full"
-									src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-									alt=""
-								/>
+								<div class="h-8 w-8 rounded-full border border-gray-300 p-1.5">
+									<Icon src={User} class="text-gray-300" />
+								</div>
 							</MenuButton>
 						</div>
 						<Transition
@@ -132,12 +131,14 @@
 									</a>
 								</MenuItem>
 								<MenuItem let:active>
-									<a
-										href="#"
-										class={cn(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
+									<button
+										on:click={() => authStore.logout()}
+										class={cn('block w-full text-left px-4 py-2 text-sm text-gray-700', {
+											'bg-gray-100': active
+										})}
 									>
 										Sign out
-									</a>
+									</button>
 								</MenuItem>
 							</MenuItems>
 						</Transition>

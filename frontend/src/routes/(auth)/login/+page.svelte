@@ -12,8 +12,7 @@
 		const result = await api('/auth/sign-in', 'POST', { emailOrUsername, rawPassword: password });
 
 		if (result.isOk()) {
-			authStore.set(result.value.jwt);
-			// TODO: Redirect user
+			authStore.login(result.value.jwt);
 		} else {
 			toast.error(result.error.error);
 		}
