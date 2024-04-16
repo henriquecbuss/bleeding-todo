@@ -1,13 +1,23 @@
-import gleam/dynamic.{type DecodeError, type Dynamic}
+import gleam/dynamic.{type DecodeError, type Decoder, type Dynamic}
 import gleam/pgo
 import gleam/int
 import gleam/string
 import gleam/list
+import gleam/result
 
 pub type DbError {
   PgoError(pgo.QueryError)
   UnexpectedReturnLength(expected: Int, actual: Int)
-  TimeParsingError(field: String)
+}
+
+pub fn execute(
+  query: String,
+  db: pgo.Connection,
+  values: List(pgo.Value),
+  decoder: Decoder(return_type),
+) -> Result(pgo.Returned(return_type), DbError) {
+  pgo.execute(query, db, values, decoder)
+  |> result.map_error(PgoError)
 }
 
 pub fn execute_single(
@@ -34,8 +44,6 @@ pub fn db_error_to_internal_string(err: DbError) -> String {
       <> " row(s), got "
       <> int.to_string(actual)
       <> " rows"
-
-    TimeParsingError(field) -> "Error parsing time field: " <> field
 
     PgoError(query_error) -> pgo_error_to_internal_string(query_error)
   }

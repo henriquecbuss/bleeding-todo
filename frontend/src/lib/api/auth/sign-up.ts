@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { user } from '../objects';
 
 const input = z.object({
 	email: z.string().email(),
@@ -7,7 +8,8 @@ const input = z.object({
 });
 
 const output = z.object({
-	jwt: z.string()
+	jwt: z.string(),
+	user
 });
 
 const error = z.object({

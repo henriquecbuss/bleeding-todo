@@ -8,6 +8,8 @@ import gleam/option.{type Option}
 import wisp.{type Request, type Response}
 import bleeding_todo/auth
 import bleeding_todo/database
+import bleeding_todo/workspace
+import bleeding_todo/user
 
 pub type UserSession =
   auth.UserSession
@@ -52,11 +54,19 @@ pub fn sign_up(req: Request, ctx: Context) -> Response {
       )
 
     case sign_up_result {
-      Ok(jwt) ->
+      Ok(auth.SignInResult(jwt, session)) ->
         wisp.json_response(
           json.to_string_builder(
             json.object([
               #("jwt", json.string(auth.jwt_to_string(jwt, ctx.secret_key))),
+              #(
+                "user",
+                user.to_json(user.User(
+                  session.user_id,
+                  input.email,
+                  input.username,
+                )),
+              ),
             ]),
           ),
           201,
@@ -101,32 +111,45 @@ pub fn sign_in(req: Request, ctx: Context) {
     wisp.unprocessable_entity()
   })
   |> result.map(fn(input) {
-    let sign_in_result =
-      auth.sign_in(
+    let sign_in_result = {
+      use auth.SignInResult(jwt, session) <- result.try(auth.sign_in(
         email_or_username: input.email_or_username,
         raw_password: input.raw_password,
         db: ctx.db,
+      ))
+
+      use user <- result.try(
+        user.get_by_id(session.user_id, ctx.db)
+        |> result.map_error(auth.DbError),
+      )
+      use workspaces <- result.try(
+        workspace.get_user_workspaces(session.user_id, ctx.db)
+        |> result.map_error(auth.DbError),
       )
 
+      Ok(#(jwt, user, workspaces))
+    }
+
     case sign_in_result {
-      Ok(jwt) ->
+      Ok(#(jwt, user, workspaces)) ->
         wisp.json_response(
           json.to_string_builder(
             json.object([
               #("jwt", json.string(auth.jwt_to_string(jwt, ctx.secret_key))),
+              #("user", user.to_json(user)),
+              #("workspaces", json.array(workspaces, workspace.to_json)),
             ]),
           ),
           201,
         )
 
-      Error(auth.PasswordIncorrect) -> {
+      Error(auth.PasswordIncorrect) ->
         wisp.json_response(
           json.to_string_builder(
             json.object([#("error", json.string("Your password is incorrect"))]),
           ),
           401,
         )
-      }
 
       Error(auth.DbError(db_error)) -> {
         wisp.log_error(database.db_error_to_internal_string(db_error))
@@ -137,9 +160,44 @@ pub fn sign_in(req: Request, ctx: Context) {
   |> result.unwrap_both()
 }
 
+// ------------- Me -------------
+
+pub fn me(session: UserSession, req: Request, ctx: Context) -> Response {
+  use <- wisp.require_method(req, http.Get)
+
+  let user_with_workspaces = {
+    use user <- result.try(user.get_by_id(session.user_id, ctx.db))
+
+    use workspaces <- result.try(workspace.get_user_workspaces(
+      session.user_id,
+      ctx.db,
+    ))
+
+    Ok(#(user, workspaces))
+  }
+
+  case user_with_workspaces {
+    Ok(#(user, workspaces)) ->
+      wisp.json_response(
+        json.to_string_builder(
+          json.object([
+            #("user", user.to_json(user)),
+            #("workspaces", json.array(workspaces, workspace.to_json)),
+          ]),
+        ),
+        200,
+      )
+
+    Error(db_error) -> {
+      wisp.log_error(database.db_error_to_internal_string(db_error))
+      wisp.internal_server_error()
+    }
+  }
+}
+
 // ------------- Helpers -------------
 
-pub fn get_session(req: Request, ctx: Context) -> Option(auth.UserSession) {
+pub fn get_session(req: Request, ctx: Context) -> Option(UserSession) {
   let auth_header = request.get_header(req, "Authorization")
 
   let session_result = case auth_header {

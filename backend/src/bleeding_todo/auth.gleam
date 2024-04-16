@@ -5,14 +5,16 @@ import gleam/dynamic
 import gleam/result
 import gleam/pgo
 import gleam/bit_array
+import gleam/json
 import bleeding_todo/database
+import bleeding_todo/dynamic_helpers
 import gwt
 
 pub opaque type UserId {
   UserId(String)
 }
 
-pub type User {
+type User {
   User(
     id: UserId,
     email: String,
@@ -39,17 +41,39 @@ pub type UserSession {
 /// 60 * 60 * 24 * 30 * 12 = 360 days
 pub const session_length_seconds = 31_104_000
 
+pub fn session_id_decoder(
+  data: dynamic.Dynamic,
+) -> Result(SessionId, dynamic.DecodeErrors) {
+  let decoder = dynamic_helpers.map(dynamic.string, SessionId)
+
+  decoder(data)
+}
+
+pub fn user_id_decoder(
+  data: dynamic.Dynamic,
+) -> Result(UserId, dynamic.DecodeErrors) {
+  let decoder = dynamic_helpers.map(dynamic.string, UserId)
+
+  decoder(data)
+}
+
+pub type SignInResult {
+  SignInResult(jwt: gwt.Jwt, session: UserSession)
+}
+
 pub fn sign_up(
   email email: String,
   raw_password raw_password: String,
   username username: String,
   db db: pgo.Connection,
-) -> Result(gwt.Jwt, database.DbError) {
+) -> Result(SignInResult, database.DbError) {
   use user_id <- result.try(create_user(email, raw_password, username, db))
 
-  use session_id <- result.try(create_session(user_id, db))
+  use session <- result.try(create_session(user_id, db))
 
-  Ok(create_jwt(session_id))
+  let jwt = create_jwt(session.id)
+
+  Ok(SignInResult(jwt, session))
 }
 
 pub type SignInError {
@@ -61,7 +85,7 @@ pub fn sign_in(
   email_or_username email_or_username: String,
   raw_password raw_password: String,
   db db: pgo.Connection,
-) -> Result(gwt.Jwt, SignInError) {
+) -> Result(SignInResult, SignInError) {
   use user <- result.try(
     get_user_by_email_or_username(email_or_username, db)
     |> result.map_error(fn(_) { PasswordIncorrect }),
@@ -76,12 +100,14 @@ pub fn sign_in(
     False -> Error(PasswordIncorrect)
 
     True -> {
-      use session_id <- result.try(
+      use session <- result.try(
         create_session(user.id, db)
         |> result.map_error(DbError),
       )
 
-      Ok(create_jwt(session_id))
+      let jwt = create_jwt(session.id)
+
+      Ok(SignInResult(jwt, session))
     }
   }
 }
@@ -102,12 +128,12 @@ fn get_user_by_email_or_username(
 
   let return_type =
     dynamic.tuple6(
+      user_id_decoder,
       dynamic.string,
       dynamic.string,
       dynamic.string,
-      dynamic.string,
-      dynamic.string,
-      dynamic.string,
+      dynamic_helpers.time,
+      dynamic_helpers.time,
     )
 
   let response =
@@ -116,29 +142,9 @@ fn get_user_by_email_or_username(
   case response {
     Error(err) -> Error(err)
 
-    Ok(#(
-      id,
-      email,
-      encrypted_password,
-      username,
-      created_at_string,
-      updated_at_string,
-    )) -> {
-      use created_at <- result.try(
-        birl.parse(created_at_string)
-        |> result.map_error(fn(_) {
-          database.TimeParsingError(field: "created_at")
-        }),
-      )
-      use updated_at <- result.try(
-        birl.parse(updated_at_string)
-        |> result.map_error(fn(_) {
-          database.TimeParsingError(field: "updated_at")
-        }),
-      )
-
+    Ok(#(id, email, encrypted_password, username, created_at, updated_at)) -> {
       Ok(User(
-        id: UserId(id),
+        id: id,
         email: email,
         encrypted_password: encrypted_password,
         username: username,
@@ -166,7 +172,7 @@ fn create_user(
         ($1, $2, $3)
     returning id::text"
 
-  let return_type = dynamic.element(0, dynamic.string)
+  let return_type = dynamic.element(0, user_id_decoder)
 
   let response =
     database.execute_single(
@@ -176,13 +182,13 @@ fn create_user(
       return_type,
     )
 
-  result.map(response, UserId(_))
+  response
 }
 
 fn create_session(
   user_id: UserId,
   db: pgo.Connection,
-) -> Result(SessionId, database.DbError) {
+) -> Result(UserSession, database.DbError) {
   let expires_at =
     birl.utc_now()
     |> birl.add(duration.seconds(session_length_seconds))
@@ -192,16 +198,34 @@ fn create_session(
     user_sessions (user_id, expires_at)
   values
     ($1, '" <> birl.to_iso8601(expires_at) <> "')
-  returning id::text"
+  returning id::text, user_id::text, created_at::text, expires_at::text"
 
-  let return_type = dynamic.element(0, dynamic.string)
-
-  let unwrapped_user_id = user_id_to_string(user_id)
+  let return_type =
+    dynamic.decode4(
+      UserSession,
+      dynamic.element(0, session_id_decoder),
+      dynamic.element(1, user_id_decoder),
+      dynamic.element(2, dynamic_helpers.time),
+      dynamic.element(3, dynamic_helpers.time),
+    )
 
   let response =
-    database.execute_single(sql, db, [pgo.text(unwrapped_user_id)], return_type)
+    database.execute_single(
+      sql,
+      db,
+      [user_id_to_pgo_value(user_id)],
+      return_type,
+    )
 
-  result.map(response, SessionId(_))
+  response
+}
+
+pub fn user_id_to_pgo_value(user_id: UserId) -> pgo.Value {
+  pgo.text(user_id_to_string(user_id))
+}
+
+pub fn user_id_to_json(user_id: UserId) -> json.Json {
+  json.string(user_id_to_string(user_id))
 }
 
 fn user_id_to_string(user_id: UserId) -> String {
@@ -266,10 +290,10 @@ fn get_session(
 
   let return_type =
     dynamic.tuple4(
-      dynamic.string,
-      dynamic.string,
-      dynamic.string,
-      dynamic.string,
+      session_id_decoder,
+      user_id_decoder,
+      dynamic_helpers.time,
+      dynamic_helpers.time,
     )
 
   let response =
@@ -283,23 +307,10 @@ fn get_session(
   case response {
     Error(err) -> Error(err)
 
-    Ok(#(id, user_id, created_at_string, expires_at_string)) -> {
-      use created_at <- result.try(
-        birl.parse(created_at_string)
-        |> result.map_error(fn(_) {
-          database.TimeParsingError(field: "created_at")
-        }),
-      )
-      use expires_at <- result.try(
-        birl.parse(expires_at_string)
-        |> result.map_error(fn(_) {
-          database.TimeParsingError(field: "expires_at")
-        }),
-      )
-
+    Ok(#(id, user_id, created_at, expires_at)) -> {
       Ok(UserSession(
-        id: SessionId(id),
-        user_id: UserId(user_id),
+        id: id,
+        user_id: user_id,
         created_at: created_at,
         expires_at: expires_at,
       ))

@@ -19,6 +19,21 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
         _ -> wisp.not_found()
       }
     }
+
+    ["me"] -> {
+      use req, session <- require_auth(req, session)
+
+      auth.me(session, req, ctx)
+    }
+
+    ["workspace", ..rest] -> {
+      use _req, _session <- require_auth(req, session)
+
+      case rest {
+        _ -> wisp.not_found()
+      }
+    }
+
     _ -> wisp.not_found()
   }
 }
@@ -38,5 +53,23 @@ fn require_no_auth(
         ),
         401,
       )
+  }
+}
+
+fn require_auth(
+  req: Request,
+  session: option.Option(auth.UserSession),
+  handle_request: fn(Request, auth.UserSession) -> Response,
+) -> Response {
+  case session {
+    option.None ->
+      wisp.json_response(
+        json.to_string_builder(
+          json.object([#("error", json.string("Not authenticated"))]),
+        ),
+        401,
+      )
+
+    option.Some(session) -> handle_request(req, session)
   }
 }

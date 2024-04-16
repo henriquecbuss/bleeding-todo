@@ -12,7 +12,8 @@
 		const result = await api('/auth/sign-in', 'POST', { emailOrUsername, rawPassword: password });
 
 		if (result.isOk()) {
-			authStore.login(result.value.jwt);
+			const { jwt, user, workspaces } = result.value;
+			authStore.login({ jwt, user, workspaces });
 		} else {
 			toast.error(result.error.error);
 		}
