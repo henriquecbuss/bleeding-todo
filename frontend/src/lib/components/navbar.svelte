@@ -12,12 +12,11 @@
 	import { Icon, XMark, Bars3, Bell, CheckBadge, User } from 'svelte-hero-icons';
 	import { cn } from '$lib/utils';
 	import { authStore } from '$lib/stores/auth.store';
+	import { page } from '$app/stores';
 
 	export let links: { name: string; href: string }[] = [];
 
-	const currentLink = links.find((link) => link.href === window.location.pathname);
-
-	const signedIn = !!$authStore;
+	const currentLink = links.find((link) => link.href === $page.url.pathname);
 </script>
 
 <Disclosure as="nav" class="bg-gray-800" let:open>
@@ -63,17 +62,21 @@
 					</div>
 				</div>
 			</div>
-			{#if !signedIn}
+			{#if !$authStore}
 				<div class="flex flex-1 items-center justify-end gap-4">
 					<a
-						href="/login"
-						class="text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-600"
+						href="login"
+						class={cn('text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700', {
+							'bg-gray-900': $page.url.pathname === '/login'
+						})}
 					>
 						Login
 					</a>
 					<a
 						href="/sign-up"
-						class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700"
+						class={cn('text-white rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-700', {
+							'bg-gray-900': $page.url.pathname === '/sign-up'
+						})}
 					>
 						Register
 					</a>
@@ -116,19 +119,19 @@
 							>
 								<MenuItem let:active>
 									<a
+										href="/dashboard"
+										class={cn(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
+									>
+										Dashboard</a
+									>
+								</MenuItem>
+								<MenuItem let:active>
+									<a
 										href="/profile"
 										class={cn(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
 									>
 										Your Profile</a
 									>
-								</MenuItem>
-								<MenuItem let:active>
-									<a
-										href="/settings"
-										class={cn(active ? 'bg-gray-100' : '', 'block px-4 py-2 text-sm text-gray-700')}
-									>
-										Settings
-									</a>
 								</MenuItem>
 								<MenuItem let:active>
 									<button
