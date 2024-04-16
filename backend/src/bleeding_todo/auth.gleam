@@ -6,6 +6,7 @@ import gleam/result
 import gleam/pgo
 import gleam/bit_array
 import gleam/json
+import gleam/order
 import bleeding_todo/database
 import bleeding_todo/dynamic_helpers
 import gwt
@@ -308,12 +309,17 @@ fn get_session(
     Error(err) -> Error(err)
 
     Ok(#(id, user_id, created_at, expires_at)) -> {
-      Ok(UserSession(
-        id: id,
-        user_id: user_id,
-        created_at: created_at,
-        expires_at: expires_at,
-      ))
+      case birl.compare(expires_at, birl.utc_now()) {
+        order.Gt | order.Eq -> Error(database.UnexpectedReturnLength(1, 0))
+
+        order.Lt ->
+          Ok(UserSession(
+            id: id,
+            user_id: user_id,
+            created_at: created_at,
+            expires_at: expires_at,
+          ))
+      }
     }
   }
 }
