@@ -9,7 +9,6 @@
 		Transition,
 		MenuItems,
 		MenuItem,
-		DisclosurePanel,
 		TransitionChild
 	} from '@rgossiaux/svelte-headlessui';
 	import { Icon, Bars3, XMark, User } from 'svelte-hero-icons';

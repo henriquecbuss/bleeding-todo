@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Disclosure, DisclosureButton, DisclosurePanel } from '@rgossiaux/svelte-headlessui';
-	import { Icon, XMark, Bars3, CheckBadge } from 'svelte-hero-icons';
+	import { Icon, XMark, Bars3 } from 'svelte-hero-icons';
 	import { cn } from '$lib/utils';
 	import { page } from '$app/stores';
 	import Logo from './logo.svelte';

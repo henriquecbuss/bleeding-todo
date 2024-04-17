@@ -1,15 +1,19 @@
-name: test
+name: backend-test
 
 on:
   push:
     paths:
       - "backend/**"
+      - ".github/workflows/backend-test.yml"
     branches:
       - main
   pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-test.yml"
 
 jobs:
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -25,6 +29,9 @@ jobs:
         working-directory: backend
 
       # - run: gleam test
+
+      - run: gleam check
+        working-directory: backend
 
       - run: gleam format --check src
         working-directory: backend
