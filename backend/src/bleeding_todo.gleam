@@ -13,7 +13,8 @@ pub fn main() {
 
   let assert Ok(url_config) = pgo.url_config(env.db_url)
 
-  let db = pgo.connect(pgo.Config(..url_config, pool_size: 15))
+  let db =
+    pgo.connect(pgo.Config(..url_config, pool_size: 15, ip_version: pgo.Ipv6))
 
   let context =
     bleeding_todo_web.Context(
