@@ -40,6 +40,7 @@
 		"svelte-french-toast": "^1.2.0",
 		"svelte-hero-icons": "^5.1.0",
 		"tailwind-merge": "^2.2.2",
+		"tippy.js": "^6.3.7",
 		"ts-results-es": "^4.1.0",
 		"zod": "^3.22.4"
 	}
