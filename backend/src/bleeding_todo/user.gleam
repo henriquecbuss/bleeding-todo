@@ -1,8 +1,8 @@
-import gleam/dynamic
-import gleam/pgo
-import gleam/json
-import bleeding_todo/database
 import bleeding_todo/auth
+import bleeding_todo/database
+import gleam/dynamic
+import gleam/json
+import gleam/pgo
 
 pub type User {
   User(id: auth.UserId, email: String, username: String)

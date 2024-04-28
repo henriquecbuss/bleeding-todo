@@ -1,8 +1,8 @@
-import wisp.{type Request, type Response}
-import gleam/option
-import gleam/json
 import bleeding_todo_web.{type Context}
 import bleeding_todo_web/controllers/auth
+import gleam/json
+import gleam/option
+import wisp.{type Request, type Response}
 
 pub fn handle_request(req: Request, ctx: Context) -> Response {
   use req <- bleeding_todo_web.middleware(req, ctx)

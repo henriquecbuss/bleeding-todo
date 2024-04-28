@@ -1,7 +1,7 @@
 import birl
-import gleam/string
-import gleam/result
 import gleam/dynamic.{type DecodeErrors, type Decoder, type Dynamic}
+import gleam/result
+import gleam/string
 
 pub fn map(decoder decoder: Decoder(a), mapper mapper: fn(a) -> b) -> Decoder(b) {
   fn(data: Dynamic) {

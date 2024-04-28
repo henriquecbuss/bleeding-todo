@@ -1,6 +1,6 @@
-import wisp
-import gleam/pgo
 import gleam/http
+import gleam/pgo
+import wisp
 
 pub type Context {
   Context(db: pgo.Connection, secret_key: String, frontend_url: String)

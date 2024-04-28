@@ -1,12 +1,12 @@
 import birl
 import bleeding_todo/auth
-import bleeding_todo/user
 import bleeding_todo/database
 import bleeding_todo/dynamic_helpers
+import bleeding_todo/user
 import gleam/dynamic
-import gleam/result
-import gleam/pgo
 import gleam/json
+import gleam/pgo
+import gleam/result
 
 pub opaque type WorkspaceId {
   WorkspaceId(id: String)

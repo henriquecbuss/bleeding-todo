@@ -1,10 +1,10 @@
+import bleeding_todo/env
+import bleeding_todo_web
+import bleeding_todo_web/router
 import gleam/erlang/process
 import gleam/pgo
 import mist
 import wisp
-import bleeding_todo_web
-import bleeding_todo_web/router
-import bleeding_todo/env
 
 pub fn main() {
   wisp.configure_logger()

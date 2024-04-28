@@ -1,9 +1,9 @@
 import gleam/dynamic.{type DecodeError, type Decoder, type Dynamic}
-import gleam/pgo
 import gleam/int
-import gleam/string
 import gleam/list
+import gleam/pgo
 import gleam/result
+import gleam/string
 
 pub type DbError {
   PgoError(pgo.QueryError)
