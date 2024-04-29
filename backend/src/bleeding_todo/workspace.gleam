@@ -8,12 +8,12 @@ import gleam/json
 import gleam/pgo
 import gleam/result
 
-pub opaque type WorkspaceId {
-  WorkspaceId(id: String)
+pub opaque type Id {
+  Id(id: String)
 }
 
 pub type Workspace {
-  Workspace(id: WorkspaceId, name: String, icon: WorkspaceIcon)
+  Workspace(id: Id, name: String, icon: WorkspaceIcon)
 }
 
 pub type WorkspaceUser {
@@ -40,12 +40,14 @@ pub type WorkspacePermission {
   WorkspaceListItemEdit
 }
 
-fn workspace_id_decoder(
-  data: dynamic.Dynamic,
-) -> Result(WorkspaceId, dynamic.DecodeErrors) {
-  let decoder = dynamic_helpers.map(dynamic.string, WorkspaceId)
+pub fn id_decoder(data: dynamic.Dynamic) -> Result(Id, dynamic.DecodeErrors) {
+  let decoder = dynamic_helpers.map(dynamic.string, Id)
 
   decoder(data)
+}
+
+pub fn id_from_string(id: String) -> Id {
+  Id(id)
 }
 
 pub fn to_json(workspace: Workspace) -> json.Json {
@@ -56,8 +58,12 @@ pub fn to_json(workspace: Workspace) -> json.Json {
   ])
 }
 
-fn id_to_json(workspace_id: WorkspaceId) -> json.Json {
+pub fn id_to_json(workspace_id: Id) -> json.Json {
   json.string(workspace_id.id)
+}
+
+pub fn id_to_pgo_value(id: Id) -> pgo.Value {
+  pgo.text(id.id)
 }
 
 pub fn get_user_workspaces(
@@ -78,7 +84,7 @@ pub fn get_user_workspaces(
   let return_type =
     dynamic.decode3(
       Workspace,
-      dynamic.element(0, workspace_id_decoder),
+      dynamic.element(0, id_decoder),
       dynamic.element(1, dynamic.string),
       dynamic.element(2, workspace_icon_decoder),
     )
@@ -87,6 +93,38 @@ pub fn get_user_workspaces(
     database.execute(sql, db, [auth.user_id_to_pgo_value(user_id)], return_type)
 
   result.map(response, fn(r) { r.rows })
+}
+
+pub fn check_membership(
+  user_id: auth.UserId,
+  workspace_id: Id,
+  db: pgo.Connection,
+) -> Result(Nil, database.DbError) {
+  let sql =
+    "
+    select
+        1
+    from
+        workspace_users
+    where
+        user_id = $1
+        and workspace_id = $2
+    "
+
+  let return_type = dynamic.dynamic
+
+  let response =
+    database.execute_single(
+      sql,
+      db,
+      [auth.user_id_to_pgo_value(user_id), id_to_pgo_value(workspace_id)],
+      return_type,
+    )
+
+  case response {
+    Ok(_) -> Ok(Nil)
+    Error(error) -> Error(error)
+  }
 }
 
 fn workspace_icon_decoder(

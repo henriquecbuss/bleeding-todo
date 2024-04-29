@@ -1,6 +1,7 @@
 import gleam/dynamic.{type DecodeError, type Decoder, type Dynamic}
 import gleam/int
 import gleam/list
+import gleam/option.{type Option}
 import gleam/pgo
 import gleam/result
 import gleam/string
@@ -26,13 +27,12 @@ pub fn execute_single(
   values: List(pgo.Value),
   decoder: fn(Dynamic) -> Result(return_type, List(DecodeError)),
 ) -> Result(return_type, DbError) {
-  let response = pgo.execute(query, db, values, decoder)
+  let response = execute_maybe_single(query, db, values, decoder)
 
   case response {
-    Error(err) -> Error(PgoError(err))
-    Ok(pgo.Returned(1, [result])) -> Ok(result)
-    Ok(pgo.Returned(count, _)) ->
-      Error(UnexpectedReturnLength(expected: 1, actual: count))
+    Error(err) -> Error(err)
+    Ok(option.None) -> Error(UnexpectedReturnLength(expected: 1, actual: 0))
+    Ok(option.Some(result)) -> Ok(result)
   }
 }
 
@@ -46,6 +46,23 @@ pub fn db_error_to_internal_string(err: DbError) -> String {
       <> " rows"
 
     PgoError(query_error) -> pgo_error_to_internal_string(query_error)
+  }
+}
+
+pub fn execute_maybe_single(
+  query: String,
+  db: pgo.Connection,
+  values: List(pgo.Value),
+  decoder: fn(Dynamic) -> Result(return_type, List(DecodeError)),
+) -> Result(Option(return_type), DbError) {
+  let response = pgo.execute(query, db, values, decoder)
+
+  case response {
+    Error(err) -> Error(PgoError(err))
+    Ok(pgo.Returned(1, [result])) -> Ok(option.Some(result))
+    Ok(pgo.Returned(0, [])) -> Ok(option.None)
+    Ok(pgo.Returned(count, _)) ->
+      Error(UnexpectedReturnLength(expected: 1, actual: count))
   }
 }
 

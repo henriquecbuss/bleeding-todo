@@ -256,9 +256,9 @@ pub fn get_session_from_jwt(
   secret: String,
   db: pgo.Connection,
 ) -> Result(UserSession, Nil) {
-  use jwt <- result.try(get_session_id_from_jwt(jwt_string, secret))
+  use session_id <- result.try(get_session_id_from_jwt(jwt_string, secret))
 
-  get_session(jwt, db)
+  get_session(session_id, db)
   |> result.map_error(fn(_) { Nil })
 }
 
@@ -310,9 +310,9 @@ fn get_session(
 
     Ok(#(id, user_id, created_at, expires_at)) -> {
       case birl.compare(expires_at, birl.utc_now()) {
-        order.Gt | order.Eq -> Error(database.UnexpectedReturnLength(1, 0))
+        order.Lt | order.Eq -> Error(database.UnexpectedReturnLength(1, 0))
 
-        order.Lt ->
+        order.Gt ->
           Ok(UserSession(
             id: id,
             user_id: user_id,

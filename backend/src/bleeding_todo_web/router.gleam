@@ -1,5 +1,7 @@
 import bleeding_todo_web.{type Context}
 import bleeding_todo_web/controllers/auth
+import bleeding_todo_web/controllers/replicache
+import bleeding_todo_web/controllers/workspace
 import gleam/json
 import gleam/option
 import wisp.{type Request, type Response}
@@ -26,10 +28,22 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
       auth.me(session, req, ctx)
     }
 
-    ["workspace", ..rest] -> {
-      use _req, _session <- require_auth(req, session)
+    ["workspace", workspace_id, ..rest] -> {
+      use req, session <- require_auth(req, session)
+
+      let workspace_id = workspace.id_from_string(workspace_id)
+
+      use _ <- workspace.require_membership(req, session, workspace_id, ctx)
 
       case rest {
+        ["replicache", ..rest] -> {
+          case rest {
+            ["push"] -> replicache.push(session, workspace_id, req, ctx)
+            ["pull"] -> replicache.pull(session, workspace_id, req, ctx)
+            _ -> wisp.not_found()
+          }
+        }
+
         _ -> wisp.not_found()
       }
     }
