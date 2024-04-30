@@ -1,7 +1,7 @@
-import { replicache, type Replicache } from '$lib/replicache';
+import { replicacheStore, type ReplicacheStore } from '$lib/replicache';
 import type { List, ListWithId } from '$lib/replicache/mutators/lists';
 import { type ReadTransaction } from 'replicache';
-import { readable } from 'svelte/store';
+import { derived } from 'svelte/store';
 
 const listLists = async (tx: ReadTransaction) => {
 	const lists = (await tx.scan<List>({ prefix: 'list/' }).entries().toArray()).map(
@@ -11,19 +11,11 @@ const listLists = async (tx: ReadTransaction) => {
 	return lists;
 };
 
-const createListsStore = (replicache: Replicache) => {
-	const { subscribe } = readable<ListWithId[]>([], (set) => {
-		return replicache.subscribe(listLists, (lists) => {
+export const listsStore = derived<ReplicacheStore, ListWithId[]>(
+	replicacheStore,
+	(replicache, set) => {
+		replicache?.subscribe(listLists, (lists) => {
 			set(lists);
 		});
-	});
-
-	return {
-		subscribe,
-		createList: replicache.mutate.createList,
-		deleteList: replicache.mutate.deleteList,
-		editList: replicache.mutate.editList
-	};
-};
-
-export const listsStore = replicache ? createListsStore(replicache) : null;
+	}
+);

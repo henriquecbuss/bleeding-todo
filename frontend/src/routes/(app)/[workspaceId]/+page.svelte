@@ -2,6 +2,8 @@
 	import { cssVariables } from '$lib/actions/css-variables';
 	import { listsStore } from '$lib/stores/list.store';
 	import { nanoid } from 'nanoid';
+	import { page } from '$app/stores';
+	import { mutationStore } from '$lib/replicache';
 
 	let name = '';
 	let color = '';
@@ -11,15 +13,15 @@
 			id: nanoid(),
 			name,
 			color,
-			workspaceId: 'bb22b656-7ec4-4825-9b42-756e08ddfc6c'
+			workspaceId: $page.params.workspaceId
 		};
 
-		listsStore?.createList(newList);
+		$mutationStore?.createList(newList);
 	};
 </script>
 
 <div>
-	<h2>Dashboard</h2>
+	<h2>{$page.params.workspaceId}</h2>
 
 	{#if $listsStore}
 		<ul>
@@ -37,7 +39,7 @@
 							on:change={(e) => {
 								const newColor = e.currentTarget.value;
 
-								listsStore?.editList({
+								$mutationStore?.editList({
 									id: list.id,
 									color: newColor
 								});
@@ -50,7 +52,7 @@
 						on:change={(e) => {
 							const newName = e.currentTarget.value;
 
-							listsStore?.editList({
+							$mutationStore?.editList({
 								id: list.id,
 								name: newName
 							});
@@ -59,7 +61,7 @@
 
 					<button
 						class="hidden group-hover:block ml-auto"
-						on:click={() => listsStore?.deleteList({ id: list.id })}>X</button
+						on:click={() => $mutationStore?.deleteList({ id: list.id })}>X</button
 					>
 				</li>
 			{/each}

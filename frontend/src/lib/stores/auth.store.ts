@@ -58,7 +58,7 @@ const createAuthStore = () => {
 		},
 		login: (
 			{ jwt, user, workspaces }: { jwt: string; user: User; workspaces: Workspace[] },
-			redirect = '/dashboard'
+			redirect = `/${workspaces[0].id}`
 		) => {
 			set({ jwt, user, workspaces });
 

@@ -4,6 +4,7 @@
 	import { ArrowRightStartOnRectangle, CurrencyDollar, Home } from 'svelte-hero-icons';
 	import SidebarItem from './sidebar-item.svelte';
 	import { authStore } from '$lib/stores/auth.store';
+	import { page } from '$app/stores';
 
 	export let className = '';
 
@@ -19,8 +20,6 @@
 			href: '/finances'
 		}
 	];
-
-	const currentWorkspaceId = 'abc';
 
 	const workspaces = [
 		{ id: 'abc', title: 'House Tasks', icon: Home, href: '/' },
@@ -58,7 +57,7 @@
 			<SidebarItem
 				as="a"
 				href={workspace.href}
-				current={workspace.id === currentWorkspaceId}
+				current={workspace.id === $page.params.workspaceId}
 				title={workspace.title}
 				icon={workspace.icon}
 			/>

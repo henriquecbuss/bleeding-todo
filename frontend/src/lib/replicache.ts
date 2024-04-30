@@ -1,51 +1,67 @@
-import { browser } from '$app/environment';
 import { env } from '$lib/env/public';
 import { Replicache as ReplicacheClass } from 'replicache';
-import { getAuthJwt } from './stores/auth.store';
+import { authStore } from './stores/auth.store';
 import { createList, deleteList, editList } from './replicache/mutators/lists';
+import { derived } from 'svelte/store';
+import { page } from '$app/stores';
 
-const createReplicache = () => {
-	if (!browser) {
-		return null;
-	}
-
-	const licenseKey = env.PUBLIC_REPLICACHE_LICENSE_KEY;
-	// TODO: Use real workspaceId
-	const workspaceId = 'bb22b656-7ec4-4825-9b42-756e08ddfc6c';
-
-	const getAuth = () => {
-		const auth = getAuthJwt();
-
-		return auth ? `Bearer ${auth}` : undefined;
-	};
-
-	const replicache = new ReplicacheClass({
-		name: 'user-id',
-		licenseKey,
+const createReplicache = ({
+	jwt,
+	userId,
+	workspaceId
+}: {
+	jwt: string;
+	userId: string;
+	workspaceId: string;
+}) => {
+	return new ReplicacheClass({
+		name: `${userId}-${workspaceId}`,
+		licenseKey: env.PUBLIC_REPLICACHE_LICENSE_KEY,
 		pushURL: `${env.PUBLIC_BACKEND_URL}/workspace/${workspaceId}/replicache/push`,
 		pullURL: `${env.PUBLIC_BACKEND_URL}/workspace/${workspaceId}/replicache/pull`,
-		logLevel: 'debug',
-		auth: getAuth(),
+		auth: `Bearer ${jwt}`,
 		mutators: {
 			createList,
 			deleteList,
 			editList
 		}
 	});
-
-	replicache.getAuth = getAuth;
-
-	const evtSource = new EventSource(
-		`${env.PUBLIC_BACKEND_URL}/sse/workspace/${workspaceId}/replicache/poke`
-	);
-
-	evtSource.onmessage = () => {
-		replicache.pull();
-	};
-
-	return replicache;
 };
 
-export type Replicache = NonNullable<typeof replicache>;
+type Replicache = ReturnType<typeof createReplicache>;
 
-export const replicache = createReplicache();
+export type ReplicacheStore = typeof replicacheStore;
+
+export const replicacheStore = derived<[typeof authStore, typeof page], Replicache | undefined>(
+	[authStore, page],
+	([auth, page], set) => {
+		const workspaceId = page.params.workspaceId;
+
+		if (!auth || !workspaceId) {
+			return undefined;
+		}
+
+		const replicache = createReplicache({
+			jwt: auth.jwt,
+			userId: auth.user.id,
+			workspaceId
+		});
+
+		set(replicache);
+
+		const evtSource = new EventSource(
+			`${env.PUBLIC_BACKEND_URL}/sse/workspace/${workspaceId}/replicache/poke`
+		);
+
+		evtSource.onmessage = () => {
+			replicache.pull();
+		};
+
+		return () => {
+			replicache.close();
+			evtSource.close();
+		};
+	}
+);
+
+export const mutationStore = derived(replicacheStore, (replicache) => replicache?.mutate);
