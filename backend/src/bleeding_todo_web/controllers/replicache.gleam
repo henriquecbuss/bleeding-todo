@@ -39,16 +39,27 @@ fn decode_pull_input(json: Dynamic) -> Result(PullInput, dynamic.DecodeErrors) {
   decoder(json)
 }
 
+fn del_operation(key: Json) -> Json {
+  json.object([#("op", json.string("del")), #("key", key)])
+}
+
+fn put_operation(key: Json, value: Json) -> Json {
+  json.object([#("op", json.string("put")), #("key", key), #("value", value)])
+}
+
 fn replicache_operation_to_json(op: replicache.Operation) -> Json {
   case op {
     replicache.Clear -> json.object([#("op", json.string("clear"))])
 
     replicache.PutTodoList(key, todo_list) -> {
-      json.object([
-        #("op", json.string("put")),
-        #("key", replicache.todo_list_key_to_json(key)),
-        #("value", todo_list.to_json(todo_list)),
-      ])
+      put_operation(
+        replicache.todo_list_key_to_json(key),
+        todo_list.to_json(todo_list),
+      )
+    }
+
+    replicache.RemoveTodoList(key) -> {
+      del_operation(replicache.todo_list_key_to_json(key))
     }
   }
 }
@@ -149,6 +160,32 @@ fn decode_create_todo_list_mutation(
   decoder(json)
 }
 
+fn decode_delete_todo_list_mutation(
+  json: Dynamic,
+) -> Result(replicache.Mutation, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic_helpers.map(
+      dynamic.field("id", todo_list.decode_id),
+      replicache.DeleteTodoList,
+    )
+
+  decoder(json)
+}
+
+fn decode_edit_todo_list_mutation(
+  json: Dynamic,
+) -> Result(replicache.Mutation, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic.decode3(
+      replicache.EditTodoList,
+      dynamic.field("id", todo_list.decode_id),
+      dynamic.optional_field("name", dynamic.string),
+      dynamic.optional_field("color", dynamic.string),
+    )
+
+  decoder(json)
+}
+
 fn decode_mutation_object(
   json: Dynamic,
 ) -> Result(replicache.MutationObject, dynamic.DecodeErrors) {
@@ -165,6 +202,10 @@ fn decode_mutation_object(
 
   use mutation <- result.try(case name {
     "createList" -> decode_create_todo_list_mutation(args)
+
+    "deleteList" -> decode_delete_todo_list_mutation(args)
+
+    "editList" -> decode_edit_todo_list_mutation(args)
 
     name ->
       Error([dynamic.DecodeError("a valid mutation name", name, ["name"])])

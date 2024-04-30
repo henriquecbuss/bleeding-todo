@@ -17,6 +17,17 @@ CREATE TABLE replicache_clients (
 
 CREATE UNIQUE INDEX replicache_clients_pkey ON replicache_clients(id text_ops);
 
+ALTER TABLE "public"."list_items"
+  DROP CONSTRAINT "list_items_list_id_fkey",
+  ALTER COLUMN "list_id" TYPE text;
+
+ALTER TABLE "public"."lists"
+  ALTER COLUMN "id" DROP DEFAULT,
+  ALTER COLUMN "id" TYPE text,
+  ALTER COLUMN "id" SET NOT NULL;
+
+ALTER TABLE "public"."list_items" ADD FOREIGN KEY ("list_id") REFERENCES "public"."lists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
 ALTER TABLE lists ADD COLUMN replicache_last_modified_version bigint NOT NULL DEFAULT 0;
 
 ALTER TABLE lists ADD COLUMN is_deleted boolean NOT NULL DEFAULT false;

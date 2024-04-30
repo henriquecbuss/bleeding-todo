@@ -11,6 +11,12 @@ dependencies:
   clsx:
     specifier: ^2.1.0
     version: 2.1.0
+  nanoid:
+    specifier: ^5.0.7
+    version: 5.0.7
+  replicache:
+    specifier: ^14.2.2
+    version: 14.2.2
   svelte-french-toast:
     specifier: ^1.2.0
     version: 1.2.0(svelte@4.2.14)
@@ -116,6 +122,11 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.14.1
+    dev: false
+
+  /@badrap/valita@0.3.8:
+    resolution: {integrity: sha512-aqzw+V8XSOkYlu7Aq1QhXqfxz5V6Vm6e0p6XZYZDEaGwSc6ac9OJ4B7U4BOo3mm7FzzRRHJ5yizeGKnj+REjBQ==}
+    engines: {node: '>= 16'}
     dev: false
 
   /@esbuild/aix-ppc64@0.20.2:
@@ -461,6 +472,22 @@ packages:
       svelte: ^3.47.0
     dependencies:
       svelte: 4.2.14
+    dev: false
+
+  /@rocicorp/lock@1.0.3:
+    resolution: {integrity: sha512-aXRTG0Ul89KrV30J/p209RhMCRLIFFIT6RepvCPBicKTHaUtTlmJipgLl6QmSt5HJYYJ5P8Czp+4T4G1+6fcgQ==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dependencies:
+      '@rocicorp/resolver': 1.0.1
+    dev: false
+
+  /@rocicorp/logger@5.2.1:
+    resolution: {integrity: sha512-/co4DJq3opjULOHe7hMAho/E2WJuv6rMOJ1QDlCKsPHZ09XkkKHDM8dPu+odmDHWBb5aMnnzC92WQLd05CTxnA==}
+    dev: false
+
+  /@rocicorp/resolver@1.0.1:
+    resolution: {integrity: sha512-9+IK9C/du8Nrqn3LaKBxJwV4H2HyIpa7HlTuc4eQ938lL4faxN6TuQV+IpvX6PxQeR14X7yMtz1f9dfiS5fvlw==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     dev: false
 
   /@rollup/rollup-android-arm-eabi@4.14.3:
@@ -1775,6 +1802,12 @@ packages:
     hasBin: true
     dev: true
 
+  /nanoid@5.0.7:
+    resolution: {integrity: sha512-oLxFY2gd2IqnjcYyOXD8XGCftpGtZP2AbHbOkthDkvRywH5ayNtPVy9YlOPcHckXzbLTCHpkb7FB+yuxKV13pQ==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    dev: false
+
   /natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
@@ -2050,6 +2083,17 @@ packages:
 
   /regenerator-runtime@0.14.1:
     resolution: {integrity: sha512-dYnhHh0nJoMfnkZs6GmmhFknAGRrLznOu5nc9ML+EJxGvrx6H7teuevqVqCuPcPK//3eDrrjQhehXVx9cnkGdw==}
+    dev: false
+
+  /replicache@14.2.2:
+    resolution: {integrity: sha512-PBlt6C2X7wSPVUUVBKumHPTXXmPZYO/rqoTQXYLgvzPabYkKBdJbCEHjh9hXNUU5vpkzDeEmOPQqlVus9zCiBg==}
+    engines: {node: '>=14.8.0'}
+    hasBin: true
+    dependencies:
+      '@badrap/valita': 0.3.8
+      '@rocicorp/lock': 1.0.3
+      '@rocicorp/logger': 5.2.1
+      '@rocicorp/resolver': 1.0.1
     dev: false
 
   /resolve-from@4.0.0:

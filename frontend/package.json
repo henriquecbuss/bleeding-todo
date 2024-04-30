@@ -37,6 +37,8 @@
 	"dependencies": {
 		"@rgossiaux/svelte-headlessui": "^2.0.0",
 		"clsx": "^2.1.0",
+		"nanoid": "^5.0.7",
+		"replicache": "^14.2.2",
 		"svelte-french-toast": "^1.2.0",
 		"svelte-hero-icons": "^5.1.0",
 		"tailwind-merge": "^2.2.2",

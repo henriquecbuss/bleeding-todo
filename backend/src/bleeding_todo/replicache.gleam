@@ -28,8 +28,15 @@ pub type Timestamp {
 }
 
 pub type Mutation {
-  // TODO: Add more operations
+  // TODO: Implement permissions
   CreateTodoList(todo_list.TodoListWithId)
+  DeleteTodoList(todo_list.Id)
+  EditTodoList(todo_list.Id, name: Option(String), color: Option(String))
+  // TODO: Add more operations
+  // CreateTodoItem
+  // CompleteTodoItem
+  // DeleteTodoItem
+  // EditTodoItem
 }
 
 pub opaque type TodoListKey {
@@ -39,6 +46,7 @@ pub opaque type TodoListKey {
 pub type Operation {
   Clear
   PutTodoList(key: TodoListKey, value: todo_list.TodoList)
+  RemoveTodoList(key: TodoListKey)
 }
 
 pub type PullOutput {
@@ -77,7 +85,11 @@ pub fn process_pull(
 
   let todo_list_patches =
     list.map(todo_lists, fn(todo_list) {
-      PutTodoList(TodoListKey(todo_list.id), todo_list.remove_id(todo_list))
+      case todo_list.is_deleted {
+        True -> RemoveTodoList(TodoListKey(todo_list.id))
+        False ->
+          PutTodoList(TodoListKey(todo_list.id), todo_list.remove_id(todo_list))
+      }
     })
 
   Ok(PullOutput(
@@ -138,6 +150,12 @@ fn process_mutation(
       use _ <- result.try(case mutation.data {
         CreateTodoList(todo_list) ->
           todo_list.create(todo_list, next_version, db)
+
+        DeleteTodoList(todo_list_id) ->
+          todo_list.delete(todo_list_id, next_version, db)
+
+        EditTodoList(todo_list_id, name, color) ->
+          todo_list.edit(todo_list_id, name, color, next_version, db)
       })
 
       use _ <- result.try(update_workspace_replicache_version(

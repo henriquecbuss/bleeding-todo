@@ -4,6 +4,7 @@ import bleeding_todo/workspace
 import gleam/dynamic.{type Dynamic}
 import gleam/json.{type Json}
 import gleam/list
+import gleam/option.{type Option}
 import gleam/pgo
 import gleam/result
 
@@ -35,14 +36,12 @@ pub fn create(
         lists (id, name, color, workspace_id, is_deleted, replicache_last_modified_version)
     values
         ($1, $2, $3, $4, false, $5)
-    returning
-        id
     "
 
   let return_type = dynamic.dynamic
 
   let response =
-    database.execute_single(
+    database.execute(
       sql,
       db,
       [
@@ -50,6 +49,74 @@ pub fn create(
         pgo.text(todo_list.name),
         pgo.text(todo_list.color),
         workspace.id_to_pgo_value(todo_list.workspace_id),
+        pgo.int(next_version),
+      ],
+      return_type,
+    )
+
+  response
+  |> result.map(fn(_) { Nil })
+}
+
+pub fn delete(
+  id: Id,
+  next_version: Int,
+  db: pgo.Connection,
+) -> Result(Nil, database.DbError) {
+  let sql =
+    "
+    update
+      lists
+    set
+      is_deleted = true,
+      replicache_last_modified_version = $2
+    where
+      id = $1
+    "
+
+  let return_type = dynamic.dynamic
+
+  let response =
+    database.execute(
+      sql,
+      db,
+      [id_to_pgo(id), pgo.int(next_version)],
+      return_type,
+    )
+
+  response
+  |> result.map(fn(_) { Nil })
+}
+
+pub fn edit(
+  id: Id,
+  name: Option(String),
+  color: Option(String),
+  next_version: Int,
+  db: pgo.Connection,
+) -> Result(Nil, database.DbError) {
+  let sql =
+    "
+    update
+      lists
+    set
+      name = COALESCE($2, name),
+      color = COALESCE($3, color),
+      replicache_last_modified_version = $4
+    where
+      id = $1
+    "
+
+  let return_type = dynamic.dynamic
+
+  let response =
+    database.execute(
+      sql,
+      db,
+      [
+        id_to_pgo(id),
+        pgo.nullable(pgo.text, name),
+        pgo.nullable(pgo.text, color),
         pgo.int(next_version),
       ],
       return_type,
@@ -67,7 +134,7 @@ fn id_to_pgo(id: Id) -> pgo.Value {
   pgo.text(id_to_string(id))
 }
 
-fn decode_id(dynamic: Dynamic) -> Result(Id, dynamic.DecodeErrors) {
+pub fn decode_id(dynamic: Dynamic) -> Result(Id, dynamic.DecodeErrors) {
   let decoder = dynamic_helpers.map(dynamic.string, Id)
 
   decoder(dynamic)
@@ -79,10 +146,10 @@ pub fn decode_with_id(
   let decoder =
     dynamic.decode4(
       TodoListWithId,
-      decode_id,
-      dynamic.string,
-      dynamic.string,
-      workspace.id_decoder,
+      dynamic.field("id", decode_id),
+      dynamic.field("name", dynamic.string),
+      dynamic.field("color", dynamic.string),
+      dynamic.field("workspaceId", workspace.id_decoder),
     )
 
   decoder(dynamic)
@@ -92,19 +159,29 @@ pub fn to_json(todo_list: TodoList) -> Json {
   json.object([
     #("name", json.string(todo_list.name)),
     #("color", json.string(todo_list.color)),
-    #("workspace_id", workspace.id_to_json(todo_list.workspace_id)),
+    #("workspaceId", workspace.id_to_json(todo_list.workspace_id)),
   ])
+}
+
+pub type FromDb {
+  FromDb(
+    id: Id,
+    name: String,
+    color: String,
+    workspace_id: workspace.Id,
+    is_deleted: Bool,
+  )
 }
 
 pub fn get_from_workspace(
   workspace_id: workspace.Id,
   prev_version: Int,
   db: pgo.Connection,
-) -> Result(List(TodoListWithId), database.DbError) {
+) -> Result(List(FromDb), database.DbError) {
   let sql =
     "
     select
-        id::text, name, color, workspace_id::text
+        id::text, name, color, workspace_id::text, is_deleted
     from
         lists
     where
@@ -113,11 +190,12 @@ pub fn get_from_workspace(
     "
 
   let return_type =
-    dynamic.tuple4(
+    dynamic.tuple5(
       decode_id,
       dynamic.string,
       dynamic.string,
       workspace.id_decoder,
+      dynamic.bool,
     )
 
   let response =
@@ -135,8 +213,8 @@ pub fn get_from_workspace(
       todo_lists
       |> list.map(fn(todo_list) {
         case todo_list {
-          #(id, name, color, workspace_id) ->
-            TodoListWithId(id, name, color, workspace_id)
+          #(id, name, color, workspace_id, is_deleted) ->
+            FromDb(id, name, color, workspace_id, is_deleted)
         }
       })
       |> Ok
@@ -144,6 +222,6 @@ pub fn get_from_workspace(
   }
 }
 
-pub fn remove_id(todo_list: TodoListWithId) -> TodoList {
+pub fn remove_id(todo_list: FromDb) -> TodoList {
   TodoList(todo_list.name, todo_list.color, todo_list.workspace_id)
 }
