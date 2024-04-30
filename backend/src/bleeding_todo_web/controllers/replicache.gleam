@@ -5,6 +5,7 @@ import bleeding_todo/replicache
 import bleeding_todo/todo_list
 import bleeding_todo/workspace
 import bleeding_todo_web.{type Context}
+import bleeding_todo_web/controllers/replicache_sse
 import gleam/dict
 import gleam/dynamic.{type Dynamic}
 import gleam/json.{type Json}
@@ -231,6 +232,7 @@ fn decode_push_input(json: Dynamic) -> Result(PushInput, dynamic.DecodeErrors) {
 pub fn push(
   session: auth.UserSession,
   workspace_id: workspace.Id,
+  poke_actor: replicache_sse.PokeActor,
   req: Request,
   ctx: Context,
 ) -> Response {
@@ -255,7 +257,11 @@ pub fn push(
         )
 
       case process_result {
-        Ok(_) -> wisp.ok()
+        Ok(_) -> {
+          replicache_sse.send_poke(workspace_id, poke_actor)
+
+          wisp.ok()
+        }
         Error(error) -> {
           wisp.log_error(database.db_error_to_internal_string(error))
           wisp.internal_server_error()

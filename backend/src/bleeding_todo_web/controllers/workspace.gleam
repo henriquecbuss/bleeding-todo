@@ -1,8 +1,11 @@
 import bleeding_todo/auth
-import bleeding_todo/workspace.{type Id}
+import bleeding_todo/workspace
 import bleeding_todo_web.{type Context}
 import gleam/json
 import wisp.{type Request, type Response}
+
+pub type Id =
+  workspace.Id
 
 pub fn id_from_string(id: String) -> Id {
   workspace.id_from_string(id)

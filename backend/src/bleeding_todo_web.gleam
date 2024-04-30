@@ -31,5 +31,5 @@ pub fn middleware(
 fn set_cors(response: wisp.Response, ctx: Context) {
   wisp.set_header(response, "Access-Control-Allow-Origin", ctx.frontend_url)
   |> wisp.set_header("Access-Control-Allow-Methods", "*")
-  |> wisp.set_header("Access-Control-ALlow-Headers", "*")
+  |> wisp.set_header("Access-Control-Allow-Headers", "*")
 }

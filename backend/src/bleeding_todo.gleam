@@ -1,5 +1,6 @@
 import bleeding_todo/env
 import bleeding_todo_web
+import bleeding_todo_web/controllers/replicache_sse
 import bleeding_todo_web/router
 import gleam/erlang/process
 import gleam/pgo
@@ -23,10 +24,12 @@ pub fn main() {
       frontend_url: env.frontend_url,
     )
 
-  let handler = router.handle_request(_, context)
+  let assert Ok(poke_actor) = replicache_sse.start_actor()
+
+  let handler = router.handle_request(_, poke_actor, context)
 
   let assert Ok(_) =
-    wisp.mist_handler(handler, env.secret_key_base)
+    handler
     |> mist.new
     |> mist.port(env.port)
     |> mist.start_http

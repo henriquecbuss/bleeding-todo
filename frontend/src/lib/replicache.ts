@@ -9,24 +9,41 @@ const createReplicache = () => {
 		return null;
 	}
 
-	const auth = getAuthJwt();
 	const licenseKey = env.PUBLIC_REPLICACHE_LICENSE_KEY;
 	// TODO: Use real workspaceId
 	const workspaceId = 'bb22b656-7ec4-4825-9b42-756e08ddfc6c';
 
-	return new ReplicacheClass({
+	const getAuth = () => {
+		const auth = getAuthJwt();
+
+		return auth ? `Bearer ${auth}` : undefined;
+	};
+
+	const replicache = new ReplicacheClass({
 		name: 'user-id',
 		licenseKey,
 		pushURL: `${env.PUBLIC_BACKEND_URL}/workspace/${workspaceId}/replicache/push`,
 		pullURL: `${env.PUBLIC_BACKEND_URL}/workspace/${workspaceId}/replicache/pull`,
 		logLevel: 'debug',
-		auth: auth ? `Bearer ${auth}` : undefined,
+		auth: getAuth(),
 		mutators: {
 			createList,
 			deleteList,
 			editList
 		}
 	});
+
+	replicache.getAuth = getAuth;
+
+	const evtSource = new EventSource(
+		`${env.PUBLIC_BACKEND_URL}/sse/workspace/${workspaceId}/replicache/poke`
+	);
+
+	evtSource.onmessage = () => {
+		replicache.pull();
+	};
+
+	return replicache;
 };
 
 export type Replicache = NonNullable<typeof replicache>;
