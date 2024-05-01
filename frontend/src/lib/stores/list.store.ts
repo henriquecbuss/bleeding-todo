@@ -1,4 +1,4 @@
-import { replicacheStore, type ReplicacheStore } from '$lib/replicache';
+import { replicacheStore, type ReplicacheStore } from './replicache.store';
 import type { List, ListWithId } from '$lib/replicache/mutators/lists';
 import { type ReadTransaction } from 'replicache';
 import { derived } from 'svelte/store';

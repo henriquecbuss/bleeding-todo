@@ -1,5 +1,6 @@
 import birl
 import gleam/dynamic.{type DecodeErrors, type Decoder, type Dynamic}
+import gleam/list
 import gleam/result
 import gleam/string
 
@@ -35,4 +36,20 @@ pub fn time(from data: Dynamic) -> Result(birl.Time, DecodeErrors) {
   let decoder = map_result(dynamic.string, birl.parse)
 
   decoder(data)
+}
+
+fn error_to_string(error: dynamic.DecodeError) -> String {
+  "DecodeError: expected `"
+  <> error.expected
+  <> "`, found `"
+  <> error.found
+  <> "` at `"
+  <> string.join(error.path, ".")
+  <> "`"
+}
+
+pub fn errors_to_string(error_list: dynamic.DecodeErrors) -> String {
+  error_list
+  |> list.map(error_to_string)
+  |> string.join("\n")
 }

@@ -278,8 +278,10 @@ pub fn push(
   let input = decode_push_input(json)
 
   case input {
-    Error(_) -> {
-      wisp.log_info("Failed to decode push input")
+    Error(e) -> {
+      wisp.log_info(
+        "Failed to decode push input: \n" <> dynamic_helpers.errors_to_string(e),
+      )
       wisp.unprocessable_entity()
     }
 

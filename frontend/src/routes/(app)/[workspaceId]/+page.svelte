@@ -3,7 +3,10 @@
 	import { listsStore } from '$lib/stores/list.store';
 	import { nanoid } from 'nanoid';
 	import { page } from '$app/stores';
-	import { mutationStore } from '$lib/replicache';
+	import { mutationStore } from '$lib/stores/replicache.store';
+	import { listItemsStore } from '$lib/stores/list-item.store';
+	import Button from '$lib/components/button.svelte';
+	import List from './list.svelte';
 
 	let name = '';
 	let color = '';
@@ -16,6 +19,9 @@
 			workspaceId: $page.params.workspaceId
 		};
 
+		name = '';
+		color = '';
+
 		$mutationStore?.createList(newList);
 	};
 </script>
@@ -24,46 +30,9 @@
 	<h2>{$page.params.workspaceId}</h2>
 
 	{#if $listsStore}
-		<ul>
+		<ul class="space-y-4">
 			{#each $listsStore as list (list.id)}
-				<li class="flex items-center gap-2 hover:bg-slate-100 rounded-sm py-1 px-2 group">
-					<label>
-						<div
-							class="h-3 w-3 rounded-sm bg-[var(--color)]"
-							use:cssVariables={{ color: list.color }}
-						/>
-
-						<input
-							type="color"
-							class="sr-only"
-							on:change={(e) => {
-								const newColor = e.currentTarget.value;
-
-								$mutationStore?.editList({
-									id: list.id,
-									color: newColor
-								});
-							}}
-						/>
-					</label>
-
-					<input
-						value={list.name}
-						on:change={(e) => {
-							const newName = e.currentTarget.value;
-
-							$mutationStore?.editList({
-								id: list.id,
-								name: newName
-							});
-						}}
-					/>
-
-					<button
-						class="hidden group-hover:block ml-auto"
-						on:click={() => $mutationStore?.deleteList({ id: list.id })}>X</button
-					>
-				</li>
+				<List {list} />
 			{/each}
 		</ul>
 	{/if}
