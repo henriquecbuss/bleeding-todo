@@ -130,8 +130,12 @@ pub fn id_to_string(id: Id) -> String {
   id.id
 }
 
-fn id_to_pgo(id: Id) -> pgo.Value {
+pub fn id_to_pgo(id: Id) -> pgo.Value {
   pgo.text(id_to_string(id))
+}
+
+pub fn id_to_json(id: Id) -> Json {
+  json.string(id_to_string(id))
 }
 
 pub fn decode_id(dynamic: Dynamic) -> Result(Id, dynamic.DecodeErrors) {

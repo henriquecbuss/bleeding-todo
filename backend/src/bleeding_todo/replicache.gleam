@@ -1,6 +1,7 @@
 import bleeding_todo/auth
 import bleeding_todo/database
 import bleeding_todo/dynamic_helpers
+import bleeding_todo/todo_item
 import bleeding_todo/todo_list
 import bleeding_todo/workspace
 import gleam/dict
@@ -32,10 +33,10 @@ pub type Mutation {
   CreateTodoList(todo_list.TodoListWithId)
   DeleteTodoList(todo_list.Id)
   EditTodoList(todo_list.Id, name: Option(String), color: Option(String))
+  CreateTodoItem(todo_item.TodoItemWithId)
+  DeleteTodoItem(todo_item.Id)
   // TODO: Add more operations
-  // CreateTodoItem
   // CompleteTodoItem
-  // DeleteTodoItem
   // EditTodoItem
 }
 
@@ -43,10 +44,17 @@ pub opaque type TodoListKey {
   TodoListKey(todo_list_id: todo_list.Id)
 }
 
+pub opaque type TodoItemKey {
+  TodoItemKey(todo_item_id: todo_item.Id)
+}
+
 pub type Operation {
   Clear
   PutTodoList(key: TodoListKey, value: todo_list.TodoList)
   RemoveTodoList(key: TodoListKey)
+
+  PutTodoItem(key: TodoItemKey, value: todo_item.TodoItem)
+  RemoveTodoItem(key: TodoItemKey)
 }
 
 pub type PullOutput {
@@ -77,6 +85,12 @@ pub fn process_pull(
     db,
   ))
 
+  use todo_items <- result.try(todo_item.get_from_workspace(
+    workspace_id,
+    prev_version,
+    db,
+  ))
+
   use clients <- result.try(get_clients_from_group(
     client_group.id,
     prev_version,
@@ -92,10 +106,19 @@ pub fn process_pull(
       }
     })
 
+  let todo_item_patches =
+    list.map(todo_items, fn(todo_item) {
+      case todo_item.is_deleted {
+        True -> RemoveTodoItem(TodoItemKey(todo_item.id))
+        False ->
+          PutTodoItem(TodoItemKey(todo_item.id), todo_item.remove_id(todo_item))
+      }
+    })
+
   Ok(PullOutput(
     last_mutation_id_changes: dict.from_list(clients),
     cookie: client_group.workspace_replicache_version,
-    patch: list.concat([todo_list_patches]),
+    patch: list.concat([todo_list_patches, todo_item_patches]),
   ))
 }
 
@@ -156,6 +179,12 @@ fn process_mutation(
 
         EditTodoList(todo_list_id, name, color) ->
           todo_list.edit(todo_list_id, name, color, next_version, db)
+
+        CreateTodoItem(todo_item) ->
+          todo_item.create(todo_item, next_version, db)
+
+        DeleteTodoItem(todo_item_id) ->
+          todo_item.delete(todo_item_id, next_version, db)
       })
 
       use _ <- result.try(update_workspace_replicache_version(
@@ -529,4 +558,8 @@ fn get_clients_from_group(
 
 pub fn todo_list_key_to_json(key: TodoListKey) -> Json {
   json.string("list/" <> todo_list.id_to_string(key.todo_list_id))
+}
+
+pub fn todo_item_key_to_json(key: TodoItemKey) -> Json {
+  json.string("listItem/" <> todo_item.id_to_string(key.todo_item_id))
 }

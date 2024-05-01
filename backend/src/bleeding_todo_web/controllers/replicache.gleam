@@ -2,6 +2,7 @@ import bleeding_todo/auth
 import bleeding_todo/database
 import bleeding_todo/dynamic_helpers
 import bleeding_todo/replicache
+import bleeding_todo/todo_item
 import bleeding_todo/todo_list
 import bleeding_todo/workspace
 import bleeding_todo_web.{type Context}
@@ -61,6 +62,17 @@ fn replicache_operation_to_json(op: replicache.Operation) -> Json {
 
     replicache.RemoveTodoList(key) -> {
       del_operation(replicache.todo_list_key_to_json(key))
+    }
+
+    replicache.PutTodoItem(key, todo_item) -> {
+      put_operation(
+        replicache.todo_item_key_to_json(key),
+        todo_item.to_json(todo_item),
+      )
+    }
+
+    replicache.RemoveTodoItem(key) -> {
+      del_operation(replicache.todo_item_key_to_json(key))
     }
   }
 }
@@ -187,6 +199,27 @@ fn decode_edit_todo_list_mutation(
   decoder(json)
 }
 
+fn decode_create_list_item_mutation(
+  json: Dynamic,
+) -> Result(replicache.Mutation, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic_helpers.map(todo_item.decode_with_id, replicache.CreateTodoItem)
+
+  decoder(json)
+}
+
+fn decode_delete_list_item_mutation(
+  json: Dynamic,
+) -> Result(replicache.Mutation, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic_helpers.map(
+      dynamic.field("id", todo_item.decode_id),
+      replicache.DeleteTodoItem,
+    )
+
+  decoder(json)
+}
+
 fn decode_mutation_object(
   json: Dynamic,
 ) -> Result(replicache.MutationObject, dynamic.DecodeErrors) {
@@ -207,6 +240,10 @@ fn decode_mutation_object(
     "deleteList" -> decode_delete_todo_list_mutation(args)
 
     "editList" -> decode_edit_todo_list_mutation(args)
+
+    "createListItem" -> decode_create_list_item_mutation(args)
+
+    "deleteListItem" -> decode_delete_list_item_mutation(args)
 
     name ->
       Error([dynamic.DecodeError("a valid mutation name", name, ["name"])])
