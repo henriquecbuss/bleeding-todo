@@ -35,9 +35,7 @@ pub type Mutation {
   EditTodoList(todo_list.Id, name: Option(String), color: Option(String))
   CreateTodoItem(todo_item.TodoItemWithId)
   DeleteTodoItem(todo_item.Id)
-  // TODO: Add more operations
-  // CompleteTodoItem
-  // EditTodoItem
+  CompleteTodoItem(todo_item.Id)
 }
 
 pub opaque type TodoListKey {
@@ -185,6 +183,9 @@ fn process_mutation(
 
         DeleteTodoItem(todo_item_id) ->
           todo_item.delete(todo_item_id, next_version, db)
+
+        CompleteTodoItem(todo_item_id) ->
+          todo_item.complete(todo_item_id, next_version, db)
       })
 
       use _ <- result.try(update_workspace_replicache_version(

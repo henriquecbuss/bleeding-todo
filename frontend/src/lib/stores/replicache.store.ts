@@ -4,7 +4,11 @@ import { authStore } from './auth.store';
 import { createList, deleteList, editList } from '$lib/replicache/mutators/lists';
 import { derived } from 'svelte/store';
 import { page } from '$app/stores';
-import { createListItem, deleteListItem } from '$lib/replicache/mutators/list-items';
+import {
+	completeListItem,
+	createListItem,
+	deleteListItem
+} from '$lib/replicache/mutators/list-items';
 
 const createReplicache = ({
 	jwt,
@@ -26,7 +30,8 @@ const createReplicache = ({
 			deleteList,
 			editList,
 			createListItem,
-			deleteListItem
+			deleteListItem,
+			completeListItem
 		}
 	});
 };

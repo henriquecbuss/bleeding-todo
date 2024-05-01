@@ -195,6 +195,36 @@ pub fn delete(
   |> result.map(fn(_) { Nil })
 }
 
+pub fn complete(
+  id: Id,
+  next_version: Int,
+  db: pgo.Connection,
+) -> Result(Nil, database.DbError) {
+  let sql =
+    "
+    update
+      list_items
+    set
+      completed_at = now() at time zone 'utc',
+      replicache_last_modified_version = $2
+    where
+      id = $1
+    "
+
+  let return_type = dynamic.dynamic
+
+  let response =
+    database.execute(
+      sql,
+      db,
+      [id_to_pgo(id), pgo.int(next_version)],
+      return_type,
+    )
+
+  response
+  |> result.map(fn(_) { Nil })
+}
+
 pub fn remove_id(item: FromDb) -> TodoItem {
   TodoItem(
     title: item.title,

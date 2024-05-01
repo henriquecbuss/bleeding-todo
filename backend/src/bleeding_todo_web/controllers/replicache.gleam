@@ -220,6 +220,18 @@ fn decode_delete_list_item_mutation(
   decoder(json)
 }
 
+fn decode_complete_list_item_mutation(
+  json: Dynamic,
+) -> Result(replicache.Mutation, dynamic.DecodeErrors) {
+  let decoder =
+    dynamic_helpers.map(
+      dynamic.field("id", todo_item.decode_id),
+      replicache.CompleteTodoItem,
+    )
+
+  decoder(json)
+}
+
 fn decode_mutation_object(
   json: Dynamic,
 ) -> Result(replicache.MutationObject, dynamic.DecodeErrors) {
@@ -244,6 +256,8 @@ fn decode_mutation_object(
     "createListItem" -> decode_create_list_item_mutation(args)
 
     "deleteListItem" -> decode_delete_list_item_mutation(args)
+
+    "completeListItem" -> decode_complete_list_item_mutation(args)
 
     name ->
       Error([dynamic.DecodeError("a valid mutation name", name, ["name"])])

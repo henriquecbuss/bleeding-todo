@@ -4,8 +4,9 @@
 	import type { ListWithId } from '$lib/replicache/mutators/lists';
 	import { listItemsStore } from '$lib/stores/list-item.store';
 	import { mutationStore } from '$lib/stores/replicache.store';
+	import { cn } from '$lib/utils';
 	import { nanoid } from 'nanoid';
-	import { Icon, PlusCircle, XMark } from 'svelte-hero-icons';
+	import { Check, Icon, PlusCircle, XMark } from 'svelte-hero-icons';
 	import { derived } from 'svelte/store';
 
 	export let list: ListWithId;
@@ -88,10 +89,19 @@
 	<ul class="mt-2">
 		{#each $listItems as listItem (listItem.id)}
 			<li class="flex items-center group py-0.5 px-2 hover:bg-slate-200">
-				{listItem.title}
+				<span class={cn({ 'line-through': listItem.completedAt !== undefined })}>
+					{listItem.title}
+				</span>
 
 				<button
-					class="hidden group-hover:block ml-auto hover:bg-red-100 p-1 rounded"
+					class="hidden group-hover:block ml-auto hover:bg-green-100 p-1 rounded"
+					on:click={() => $mutationStore?.completeListItem({ id: listItem.id })}
+				>
+					<Icon src={Check} size="16" /></button
+				>
+
+				<button
+					class="hidden group-hover:block ml-2 hover:bg-red-100 p-1 rounded"
 					on:click={() => $mutationStore?.deleteListItem({ id: listItem.id })}
 				>
 					<Icon src={XMark} size="16" /></button

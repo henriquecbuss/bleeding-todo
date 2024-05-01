@@ -25,11 +25,32 @@ export const deleteListItem = async (tx: WriteTransaction, { id }: { id: string 
 	await tx.del(`listItem/${id}`);
 };
 
+export const completeListItem = async (tx: WriteTransaction, { id }: { id: string }) => {
+	const item = await tx.get<SerializableListItem<ListItem>>(`listItem/${id}`);
+
+	if (!item) {
+		return;
+	}
+
+	await tx.set(`listItem/${id}`, serialize({ ...item, completedAt: new Date() }));
+};
+
 const serialize = <T extends ListItem>(item: T): SerializableListItem<T> => {
+	const serializeMaybeDate = (date?: Date | string) => {
+		if (!date) {
+			return undefined;
+		}
+
+		if (typeof date === 'string') {
+			return date;
+		}
+
+		return date.toISOString();
+	};
 	return {
 		...item,
-		dueDate: item.dueDate?.toISOString(),
-		completedAt: item.completedAt?.toISOString()
+		dueDate: serializeMaybeDate(item.dueDate),
+		completedAt: serializeMaybeDate(item.completedAt)
 	};
 };
 
