@@ -1,11 +1,8 @@
 <script>
-	import { cssVariables } from '$lib/actions/css-variables';
 	import { listsStore } from '$lib/stores/list.store';
 	import { nanoid } from 'nanoid';
 	import { page } from '$app/stores';
 	import { mutationStore } from '$lib/stores/replicache.store';
-	import { listItemsStore } from '$lib/stores/list-item.store';
-	import Button from '$lib/components/button.svelte';
 	import List from './list.svelte';
 
 	let name = '';

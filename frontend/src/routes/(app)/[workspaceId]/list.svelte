@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { cssVariables } from '$lib/actions/css-variables';
-	import Input from '$lib/components/input.svelte';
 	import type { ListWithId } from '$lib/replicache/mutators/lists';
 	import { listItemsStore } from '$lib/stores/list-item.store';
 	import { mutationStore } from '$lib/stores/replicache.store';
